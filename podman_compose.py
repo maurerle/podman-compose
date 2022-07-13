@@ -2192,8 +2192,9 @@ def build_one(compose, args, cnt):
             )
         )
     build_args.append(ctx)
-    status = compose.podman.run([], "build", build_args, sleep=0)
-    return status
+    exit_code = compose.podman.run([], "build", build_args, sleep=0).wait()
+    if exit_code:
+        sys.exit(exit_code)
 
 
 @cmd_run(podman_compose, "build", "build stack images")
