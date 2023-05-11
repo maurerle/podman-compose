@@ -897,7 +897,7 @@ def get_net_args(compose, cnt):
     return net_args
 
 
-def container_to_args(compose, cnt, detached=True):
+def container_to_args(compose, cnt, detached=True, extra_hosts=True):
     # TODO: double check -e , --add-host, -v, --read-only
     dirname = compose.dirname
     pod = cnt.get("pod", None) or ""
@@ -966,8 +966,9 @@ def container_to_args(compose, cnt, detached=True):
         podman_args += [f"--log-opt={name}={value}" for name, value in log_opts.items()]
     for secret in cnt.get("secrets", []):
         podman_args.extend(get_secret_args(compose, cnt, secret))
-    for i in cnt.get("extra_hosts", []):
-        podman_args.extend(["--add-host", i])
+    if extra_hosts:
+        for i in cnt.get("extra_hosts", []):
+            podman_args.extend(["--add-host", i]
     for i in cnt.get("expose", []):
         podman_args.extend(["--expose", i])
     if cnt.get("publishall", None):
@@ -2270,7 +2271,7 @@ def compose_up(compose, args):
         if cnt["_service"] in excluded:
             log.debug("** skipping: %s", cnt["name"])
             continue
-        podman_args = container_to_args(compose, cnt, detached=args.detach)
+        podman_args = container_to_args(compose, cnt, detached=args.detach, extra_hosts=args.extra_hosts)
         subproc = compose.podman.run([], podman_command, podman_args)
         if podman_command == "run" and subproc and subproc.returncode:
             compose.podman.run([], "start", [cnt["name"]])
@@ -2502,7 +2503,7 @@ def compose_run(compose, args):
     if args.rm and "restart" in cnt:
         del cnt["restart"]
     # run podman
-    podman_args = container_to_args(compose, cnt, args.detach)
+    podman_args = container_to_args(compose, cnt, args.detach, args.extra_hosts)
     if not args.detach:
         podman_args.insert(1, "-i")
         if args.rm:
@@ -2847,6 +2848,14 @@ def compose_up_parse(parser):
         default=None,
         help="Return the exit code of the selected service container. Implies --abort-on-container-exit.",
     )
+    parser.add_argument(
+        "--disable-extra-hosts", 
+        dest="extra_hosts",
+        action='store_false',
+        default=True,
+        help="Don't pass --add-host when starting containers. Fixes: https://github.com/containers/podman/issues/15373"
+    )
+
 
 
 @cmd_parse(podman_compose, "down")
