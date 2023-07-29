@@ -1082,7 +1082,11 @@ def container_to_args(compose, cnt, detached=True):
         for gidmap in x_podman.get("gidmaps", []):
             podman_args.extend(["--gidmap", gidmap])
 
-    podman_args.append(cnt["image"])  # command, ..etc.
+    rootfs = cnt.get("rootfs", None)
+    if rootfs is not None:
+        podman_args.extend(["--rootfs", cnt['rootfs']])
+    else:
+        podman_args.append(cnt["image"])  # command, ..etc.
     command = cnt.get("command", None)
     if command is not None:
         if is_str(command):
@@ -1734,7 +1738,7 @@ class PodmanCompose:
                     "service_name": service_name,
                     **service_desc,
                 }
-                if "image" not in cnt:
+                if "image" not in cnt and "rootfs" not in cnt:
                     cnt["image"] = f"{project_name}_{service_name}"
                 labels = norm_as_list(cnt.get("labels", None))
                 cnt["ports"] = norm_ports(cnt.get("ports", None))
