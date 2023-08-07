@@ -10,24 +10,22 @@
 # TODO: podman pod logs --color -n -f pod_testlogs
 
 
-import sys
-import os
-import getpass
 import argparse
-import itertools
-import subprocess
-import time
-import re
-import hashlib
-import random
-import json
+import getpass
 import glob
-from typing import Optional, Sequence
+import hashlib
+import itertools
+import json
 import logging
-
-from threading import Thread
-
+import os
+import random
+import re
 import shlex
+import subprocess
+import sys
+import time
+from threading import Thread
+from typing import Optional, Sequence
 
 try:
     from shlex import quote as cmd_quote
@@ -576,7 +574,7 @@ def get_secret_args(compose, cnt, secret):
         volume_ref = ["--volume", f"{source_file}:{dest_file}:ro,rprivate,rbind"]
         if uid or gid or mode:
             sec = target if target else secret_name
-            log.warn(
+            log.warning(
                 f'WARNING: Service {cnt["_service"]} uses secret "{sec}" with uid, gid, or mode.'
                 + " These fields are not supported by this implementation of the Compose file"
             )
@@ -604,7 +602,7 @@ def get_secret_args(compose, cnt, secret):
         if target and target != secret_name:
             raise ValueError(err_str.format(target, secret_name))
         if target:
-            log.warn(
+            log.warning(
                 'WARNING: Service "{}" uses target: "{}" for secret: "{}".'.format(
                     cnt["_service"], target, secret_name
                 )
@@ -962,7 +960,7 @@ def container_to_args(compose, cnt, detached=True, extra_hosts=True):
         podman_args.extend(get_secret_args(compose, cnt, secret))
     if extra_hosts:
         for i in cnt.get("extra_hosts", []):
-            podman_args.extend(["--add-host", i]
+            podman_args.extend(["--add-host", i])
     for i in cnt.get("expose", []):
         podman_args.extend(["--expose", i])
     if cnt.get("publishall", None):
@@ -1080,7 +1078,7 @@ def container_to_args(compose, cnt, detached=True, extra_hosts=True):
 
     rootfs = cnt.get("rootfs", None)
     if rootfs is not None:
-        podman_args.extend(["--rootfs", cnt['rootfs']])
+        podman_args.extend(["--rootfs", cnt["rootfs"]])
     else:
         podman_args.append(cnt["image"])  # command, ..etc.
     command = cnt.get("command", None)
@@ -1289,7 +1287,7 @@ def normalize_service(service, sub_dir=""):
         if is_list(deps):
             deps_dict = dict()
             for d in deps:
-                deps_dict[d] = {'condition': 'service_started'}
+                deps_dict[d] = {"condition": "service_started"}
             service["depends_on"] = deps_dict
     return service
 
@@ -1481,7 +1479,7 @@ class PodmanCompose:
         missing = given - self.all_services
         if missing:
             missing_csv = ",".join(missing)
-            log.warn(f"missing services [{missing_csv}]")
+            log.warning(f"missing services [{missing_csv}]")
             sys.exit(1)
 
     def get_podman_args(self, cmd):
@@ -1665,7 +1663,7 @@ class PodmanCompose:
         services = compose.get("services", None)
         if services is None:
             services = {}
-            log.warn("WARNING: No services defined")
+            log.warning("WARNING: No services defined")
         # include services with no profile defined or the selected profiles
         services = self._resolve_profiles(services, set(args.profile))
 
@@ -1704,7 +1702,7 @@ class PodmanCompose:
         unused_nets = given_nets - allnets - set(["default"])
         if len(unused_nets):
             unused_nets_str = ",".join(unused_nets)
-            log.warn(f"WARNING: unused networks: {unused_nets_str}")
+            log.warning(f"WARNING: unused networks: {unused_nets_str}")
         if len(missing_nets):
             missing_nets_str = ",".join(missing_nets)
             raise RuntimeError(f"missing networks: {missing_nets_str}")
@@ -1825,7 +1823,7 @@ class PodmanCompose:
             parser.print_help()
             sys.exit(-1)
 
-        logging.basicConfig(level=('DEBUG' if self.global_args.verbose else 'WARN'))
+        logging.basicConfig(level=("DEBUG" if self.global_args.verbose else "WARN"))
         return self.global_args
 
     @staticmethod
@@ -1968,9 +1966,19 @@ class cmd_parse:  # pylint: disable=invalid-name,too-few-public-methods
 # Thread used to start containers in a compose project. This thread keeps track of the corresponding container name
 # and the service name
 class _ContainerStartThread(Thread):
-    def __init__(self, service_name, container_name, target=None, name=None,
-                 args=(), kwargs=None, daemon=None):
-        super().__init__(target=target, name=name, args=args, kwargs=kwargs, daemon=daemon)
+    def __init__(
+        self,
+        service_name,
+        container_name,
+        target=None,
+        name=None,
+        args=(),
+        kwargs=None,
+        daemon=None,
+    ):
+        super().__init__(
+            target=target, name=name, args=args, kwargs=kwargs, daemon=daemon
+        )
         self._service_name = service_name
         self._container_name = container_name
 
@@ -2090,10 +2098,10 @@ ExecStop=/usr/bin/podman pod stop pod_%i
 WantedBy=default.target
 """
         if os.access(os.path.dirname(fn), os.W_OK):
-            log.debug(f"writing [{fn}]: ...")
+            log.debug("writing [%s]: ...", fn)
             with open(fn, "w", encoding="utf-8") as f:
                 f.write(out)
-            log.debug(f"writing [{fn}]: done.")
+            log.debug("writing [%s]: done.", fn)
             print(
                 """
 while in your project type `podman-compose systemd -a register`
@@ -2101,7 +2109,7 @@ while in your project type `podman-compose systemd -a register`
             )
         else:
             print(out)
-            log.warn(f"Could not write to [{fn}], use 'sudo'")
+            log.warning("Could not write to [%s], use 'sudo'", fn)
 
 
 @cmd_run(podman_compose, "pull", "pull stack images")
@@ -2298,7 +2306,9 @@ def compose_up(compose, args):
         if cnt["_service"] in excluded:
             log.debug("** skipping: %s", cnt["name"])
             continue
-        podman_args = container_to_args(compose, cnt, detached=args.detach, extra_hosts=args.extra_hosts)
+        podman_args = container_to_args(
+            compose, cnt, detached=args.detach, extra_hosts=args.extra_hosts
+        )
         subproc = compose.podman.run([], podman_command, podman_args)
         if podman_command == "run" and subproc and subproc.returncode:
             compose.podman.run([], "start", [cnt["name"]])
@@ -2363,11 +2373,18 @@ def compose_up(compose, args):
                     exit_code = (
                         compose.exit_code if compose.exit_code is not None else -1
                     )
-                    log("aborting because container:", thread.container_name, "exited with exit code:", exit_code)
+                    log(
+                        "aborting because container:",
+                        thread.container_name,
+                        "exited with exit code:",
+                        exit_code,
+                    )
                     # stop other containers that were launched
                     default_stop_timeout = getattr(args, "timeout", None)
                     to_stop = launched_container_names
-                    to_stop.remove(thread.container_name)  # no need to attempt stopping this already exited container
+                    to_stop.remove(
+                        thread.container_name
+                    )  # no need to attempt stopping this already exited container
                     _stop_containers(compose, to_stop, default_stop_timeout)
         for thread in to_remove:
             threads.remove(thread)
@@ -2998,13 +3015,12 @@ def compose_up_parse(parser):
         help="Return the exit code of the selected service container. Implies --abort-on-container-exit.",
     )
     parser.add_argument(
-        "--disable-extra-hosts", 
+        "--disable-extra-hosts",
         dest="extra_hosts",
-        action='store_false',
+        action="store_false",
         default=True,
-        help="Don't pass --add-host when starting containers. Fixes: https://github.com/containers/podman/issues/15373"
+        help="Don't pass --add-host when starting containers. Fixes: https://github.com/containers/podman/issues/15373",
     )
-
 
 
 @cmd_parse(podman_compose, "down")
