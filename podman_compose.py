@@ -1054,6 +1054,8 @@ def container_to_args(compose, cnt, detached=True, extra_hosts=True):
     platform = cnt.get("platform", None)
     if platform is not None:
         podman_args.extend(["--platform", platform])
+    if cnt.get("runtime", None):
+        podman_args.extend(["--runtime", cnt["runtime"]])
 
     # WIP: healthchecks are still work in progress
     healthcheck = cnt.get("healthcheck", None) or {}
