@@ -771,7 +771,7 @@ def assert_cnt_nets(compose, cnt):
                 args.extend(("--opt", f"{key}={value}"))
             ipam = net_desc.get("ipam", None) or {}
             ipam_driver = ipam.get("driver", None)
-            if ipam_driver:
+            if ipam_driver and ipam_driver not in ("default"):
                 args.extend(("--ipam-driver", ipam_driver))
             ipam_config_ls = ipam.get("config", None) or []
             if is_dict(ipam_config_ls):
